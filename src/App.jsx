@@ -1,14 +1,15 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
-import Login from './components/shared/Login'
-import LoginPage from './components/auth/LoginPage'
-import UserRegistration from './components/user/UserRegistration'
+import Login from './components/shared/Login.jsx'
+import LoginPage from './components/auth/LoginPage.jsx'
+import UserRegistration from './components/user/UserRegistration.jsx'
 import UserDashboard from './components/user/UserDashboard.jsx'
+// Fixed import for Vercel deployment
 import AdminDashboard from './components/admin/AdminDashboard.jsx'
-import CocForm from './components/user/CocForm'
-import ApplicationDocuments from './components/user/ApplicationDocuments'
-import ProtectedRoute from './components/shared/ProtectedRoute'
+import CocForm from './components/user/CocForm.jsx'
+import ApplicationDocuments from './components/user/ApplicationDocuments.jsx'
+import ProtectedRoute from './components/shared/ProtectedRoute.jsx'
 import './utils/initializeData'
 
 
