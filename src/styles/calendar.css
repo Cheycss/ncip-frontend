@@ -1,0 +1,38 @@
+/* Modern Calendar Popup Styles */
+
+/* Calendar input field text color */
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+input[type="date"]::-webkit-datetime-edit-text {
+  color: #9ca3af;
+  padding: 0 4px;
+}
+
+/* Hide the default calendar icon (we use our custom one) */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background: transparent;
+}
+
+/* Remove inner spin button for date inputs */
+input[type="date"]::-webkit-inner-spin-button {
+  display: none;
+}
+
+/* Calendar popup container - Note: Limited browser support for styling */
+input[type="date"]::-webkit-datetime-edit {
+  padding: 0;
+}
