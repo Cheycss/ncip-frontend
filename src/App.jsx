@@ -5,7 +5,7 @@ import Login from './components/shared/Login.jsx'
 import LoginPage from './components/auth/LoginPage.jsx'
 import UserRegistration from './components/user/UserRegistration.jsx'
 import UserDashboard from './components/user/UserDashboard.jsx'
-// Fixed import for Vercel deployment
+// Fixed import for Vercel deployment - AdminDashboard.jsx now included
 import AdminDashboard from './components/admin/AdminDashboard.jsx'
 import CocForm from './components/user/CocForm.jsx'
 import ApplicationDocuments from './components/user/ApplicationDocuments.jsx'
