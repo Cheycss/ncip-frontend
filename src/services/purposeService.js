@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { getApiBaseUrl } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:3001/api/purposes';
+const API_BASE_URL = `${getApiBaseUrl()}/purposes`;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('ncip_token');

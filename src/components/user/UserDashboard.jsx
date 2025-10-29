@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { getApiBaseUrl } from '../../config/api'
 import axios from 'axios'
 import { getAvatarProps } from '../../utils/avatarGenerator'
 import CocForm from './CocForm'
@@ -92,7 +93,7 @@ const UserDashboard = () => {
         const token = localStorage.getItem('ncip_token')
         if (!token) return
 
-        const response = await axios.get('http://localhost:3001/api/profile', {
+        const response = await axios.get(`${getApiBaseUrl()}/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 

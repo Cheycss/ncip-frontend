@@ -5,8 +5,9 @@
  */
 
 import axios from 'axios';
+import { getApiBaseUrl } from '../config/api';
 
-const API_URL = 'http://localhost:3001/api/purposes';
+const API_URL = `${getApiBaseUrl()}/purposes`;
 
 // Default purposes for initial database seeding only
 const defaultPurposes = [
