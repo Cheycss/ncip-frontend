@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, CheckCircle, XCircle, Clock, Download, Eye, User, Calendar, AlertTriangle, X, Filter, Search } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, Download, Filter, Search, RefreshCw, FileText, User, Calendar, MapPin, Phone, Mail, AlertCircle, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, X } from 'lucide-react';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const DocumentReview = () => {
   const [applications, setApplications] = useState([]);
@@ -20,14 +21,7 @@ const DocumentReview = () => {
     loadApplications();
   }, []);
 
-  // Dynamic API URL helper
-  const getApiUrl = () => {
-    const currentHost = window.location.hostname;
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-      return `http://${currentHost}:3001`;
-    }
-    return 'http://localhost:3001';
-  };
+  // Using centralized API configuration
 
   const loadApplications = async () => {
     try {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { Menu, ChevronLeft, Smartphone, Monitor } from 'lucide-react'
+import { getApiUrl } from '../../config/api'
 import Applications from './Applications'
 import Services from './Services'
 import Users from './Users'
@@ -149,14 +150,7 @@ const AdminDashboard = () => {
   const loadStats = async () => {
     try {
       // Load pending registrations from new API
-      // Dynamic API URL
-      const getApiUrl = () => {
-        const currentHost = window.location.hostname;
-        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-          return `http://${currentHost}:3001`;
-        }
-        return 'http://localhost:3001';
-      };
+      // Using centralized API configuration
       
       const pendingRegsResponse = await fetch(`${getApiUrl()}/api/pending-registrations/pending`);
       const pendingRegsData = await pendingRegsResponse.json();
