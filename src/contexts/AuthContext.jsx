@@ -16,17 +16,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Dynamic API URL - works both locally and on network
+  // API URL configuration
   const getApiBaseUrl = () => {
-    const currentHost = window.location.hostname;
-    
-    // If accessing via IP address, use the same IP for API
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-      return `http://${currentHost}:3001/api`;
+    // Production: Use Render backend
+    if (window.location.hostname.includes('vercel.app')) {
+      return 'https://ncip-backend.onrender.com/api';
     }
     
-    // Default to localhost for local development
-    return 'http://localhost:3001/api';
+    // Local development: Use localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3001/api';
+    }
+    
+    // Network access: Use current IP
+    return `http://${window.location.hostname}:3001/api`;
   };
 
   const API_BASE_URL = getApiBaseUrl()
