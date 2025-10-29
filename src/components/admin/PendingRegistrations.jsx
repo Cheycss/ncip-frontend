@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, Clock, User, Mail, Phone, MapPin, FileText, AlertCircle, ZoomIn, ZoomOut, RotateCw, Download } from 'lucide-react';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const PendingRegistrations = () => {
   const [registrations, setRegistrations] = useState([]);
@@ -18,14 +19,7 @@ const PendingRegistrations = () => {
     fetchPendingRegistrations();
   }, []);
 
-  // Dynamic API URL helper
-  const getApiUrl = () => {
-    const currentHost = window.location.hostname;
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-      return `http://${currentHost}:3001`;
-    }
-    return 'http://localhost:3001';
-  };
+  // Using centralized API configuration
 
   const fetchPendingRegistrations = async () => {
     try {
