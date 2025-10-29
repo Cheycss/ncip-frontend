@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, CheckCircle, Mail, Upload, User, Eye, EyeOff, MapPin, Shield, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { getApiBaseUrl } from '../../config/api';
 import EmailVerificationStep from './EmailVerificationStep';
 
 const UserRegistration = () => {
@@ -469,7 +470,7 @@ const UserRegistration = () => {
     setErrors({});
     
     try {
-      const response = await fetch('http://192.168.68.56:3001/api/registration-auth/send-verification', {
+      const response = await fetch(`${getApiBaseUrl()}/registration-auth/send-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -689,7 +690,7 @@ const UserRegistration = () => {
         birth_certificate_data: birthCertificateData
       };
 
-      await axios.post('http://192.168.68.56:3001/api/pending-registrations/submit', payload, {
+      await axios.post(`${getApiBaseUrl()}/pending-registrations/submit`, payload, {
         headers: { 'Content-Type': 'application/json' }
       });
 
