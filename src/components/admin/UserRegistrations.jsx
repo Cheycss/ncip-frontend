@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { CheckCircle, XCircle, Eye, Clock, User, Mail, Phone, MapPin, FileText, AlertCircle, ImageIcon, Users } from 'lucide-react';
 import axios from 'axios';
-import { Eye, CheckCircle, XCircle, Clock, User, Mail, Phone, FileText, Calendar, MapPin, Users, Image as ImageIcon } from 'lucide-react';
+import { getApiBaseUrl } from '../../config/api';
 
 const UserRegistrations = () => {
   const [registrations, setRegistrations] = useState([]);
@@ -13,14 +14,6 @@ const UserRegistrations = () => {
   const [zoomLevel, setZoomLevel] = useState(100);
 
   // Dynamic API URL - works both locally and on network
-  const getApiBaseUrl = () => {
-    const currentHost = window.location.hostname;
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-      return `http://${currentHost}:3001/api`;
-    }
-    return 'http://localhost:3001/api';
-  };
-
   const API_BASE_URL = getApiBaseUrl();
 
   // ESC key to close modal

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
+import { getApiBaseUrl } from '../../config/api';
 import { 
   User, 
   Mail, 
@@ -17,14 +18,6 @@ import {
 } from 'lucide-react';
 
 // Dynamic API URL helper
-const getApiBaseUrl = () => {
-  const currentHost = window.location.hostname;
-  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-    return `http://${currentHost}:3001/api`;
-  }
-  return 'http://localhost:3001/api';
-};
-
 const API_BASE_URL = getApiBaseUrl();
 
 const Profile = () => {

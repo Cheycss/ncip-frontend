@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Mail, User, Phone, MapPin, Eye, EyeOff, ArrowRight, ArrowLeft, CheckCircle, AlertCircle, Shield } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, User, Phone, MapPin, Shield, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { getApiBaseUrl } from '../../config/api';
 
 const RegistrationForm = () => {
   const [step, setStep] = useState(1);
@@ -65,7 +67,7 @@ const RegistrationForm = () => {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:3001/api/registration-auth/send-verification', {
+      const response = await fetch(`${getApiBaseUrl()}/registration-auth/send-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,14 +104,14 @@ const RegistrationForm = () => {
 
     try {
       // For now, we'll use the existing endpoint and just check if it's valid
-      const response = await fetch('http://localhost:3001/api/registration-auth/send-verification', {
+      const response = await fetch(`${getApiBaseUrl()}/registration-auth/send-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: formData.email,
-          firstName: formData.firstName
+          code: verificationCode
         }),
       });
 
@@ -163,7 +165,7 @@ const RegistrationForm = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/registration-auth/verify-and-register', {
+      const response = await fetch(`${getApiBaseUrl()}/registration-auth/verify-and-register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
