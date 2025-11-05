@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { UserPlus, Mail, User, Phone, MapPin, Shield, Send, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react';
+import { getApiBaseUrl } from '../../config/api';
 
-const CreateUser = () => {
+const CreateUser = ({ onClose }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -47,7 +48,7 @@ const CreateUser = () => {
     
     try {
       // Note: We'll need to re-enable the admin routes in the backend
-      const response = await fetch('http://localhost:3001/api/admin-users/send-user-verification', {
+      const response = await fetch(`${getApiBaseUrl()}/admin-users/send-user-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +86,7 @@ const CreateUser = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/admin-users/verify-and-create-user', {
+      const response = await fetch(`${getApiBaseUrl()}/admin-users/verify-and-create-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,6 +109,10 @@ const CreateUser = () => {
       if (data.success) {
         setSuccess('User account created successfully!');
         setStep(3);
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 2000);
       } else {
         setError(data.message || 'Failed to create user account');
       }
