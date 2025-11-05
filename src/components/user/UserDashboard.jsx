@@ -123,7 +123,7 @@ const UserDashboard = () => {
         const token = localStorage.getItem('ncip_token')
         if (!token) return
 
-        const response = await axios.get(`${getApiUrl()}/api/profile`, {
+        const response = await axios.get(`${getApiBaseUrl()}/api/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -177,7 +177,7 @@ const UserDashboard = () => {
       if (!token) return
 
       // Fetch applications from backend API
-      const response = await axios.get(`${getApiUrl()}/api/applications`, {
+      const response = await axios.get(`${getApiBaseUrl()}/api/applications`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
