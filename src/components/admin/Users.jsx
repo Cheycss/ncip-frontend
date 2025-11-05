@@ -463,21 +463,21 @@ const Users = () => {
 
       {/* Add User Modal with Email Verification */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl w-full max-w-3xl my-8 shadow-2xl">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center rounded-t-xl z-10">
               <h3 className="text-lg font-bold text-gray-900">Add New User</h3>
               <button 
                 onClick={() => {
                   setShowAddModal(false);
                   loadUsers(); // Reload users after closing
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6">
+            <div className="max-h-[calc(100vh-8rem)] overflow-y-auto">
               <CreateUser onClose={() => {
                 setShowAddModal(false);
                 loadUsers(); // Reload users after successful creation
