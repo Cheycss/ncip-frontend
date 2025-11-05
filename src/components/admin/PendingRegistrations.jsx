@@ -51,7 +51,10 @@ const PendingRegistrations = () => {
 
     try {
       setProcessing(true);
-      const response = await axios.post(`${getApiUrl()}/api/pending-registrations/approve/${selectedRegistration.id}`);
+      // Use registration_id or id, whichever exists
+      const registrationId = selectedRegistration.registration_id || selectedRegistration.id;
+      console.log('Approving registration with ID:', registrationId, 'Full object:', selectedRegistration);
+      const response = await axios.post(`${getApiUrl()}/api/pending-registrations/approve/${registrationId}`);
       
       if (response.data.success) {
         alert('Registration approved successfully! User account has been created.');
@@ -79,7 +82,9 @@ const PendingRegistrations = () => {
 
     try {
       setProcessing(true);
-      const response = await axios.post(`${getApiUrl()}/api/pending-registrations/reject/${selectedRegistration.id}`, {
+      // Use registration_id or id, whichever exists
+      const registrationId = selectedRegistration.registration_id || selectedRegistration.id;
+      const response = await axios.post(`${getApiUrl()}/api/pending-registrations/reject/${registrationId}`, {
         comment: rejectionComment.trim()
       });
       
