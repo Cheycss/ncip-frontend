@@ -113,6 +113,10 @@ const UserDashboard = () => {
     }
     
     // Listen for profile changes
+    const handleProfileChange = () => {
+      loadProfileFromDB()
+    }
+    
     // Load profile data from database
     const loadProfileFromDB = async () => {
       try {
