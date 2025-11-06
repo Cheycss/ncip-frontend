@@ -18,8 +18,8 @@ const Login = () => {
   // Carousel slides data
   const slides = [
     {
-      title: "Welcome to NCIP Portal",
-      subtitle: "Your gateway to Indigenous Peoples services and Certificate of Confirmation applications for all communities.",
+      title: "Welcome to NCIP Alabel Sarangani Portal",
+      subtitle: "Your gateway to Indigenous Peoples Digital Services and Certificate of Confirmation applications.",
       highlight: "Indigenous Peoples services",
       stats: null
     },
@@ -148,7 +148,7 @@ const Login = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">
-                  NCIP Portal
+                  NCIP, Alabel Sarangani
                 </h1>
                 <p className="text-sm text-blue-100 font-medium">National Commission on Indigenous Peoples</p>
               </div>
@@ -212,10 +212,10 @@ const Login = () => {
               {/* Fixed height container for title to prevent size changes */}
               <div className="h-32 md:h-40 flex items-center justify-center mb-6">
                 <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight transition-all duration-700 ease-in-out text-center">
-                  {slides[currentSlide].title.includes("NCIP Portal") ? (
+                  {slides[currentSlide].title.includes("NCIP Alabel Sarangani") ? (
                     <>
                       Welcome to<br />
-                      <span className="text-blue-200">NCIP Portal</span>
+                      <span className="text-blue-200">NCIP Alabel Sarangani Portal</span>
                     </>
                   ) : (
                     <span className="text-blue-200">{slides[currentSlide].title}</span>
@@ -340,7 +340,7 @@ const Login = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
                     <img src="/NCIPLogo.png" alt="NCIP" className="w-8 h-8 mr-2" />
-                    <span className="font-bold text-gray-900">NCIP Portal</span>
+                    <span className="font-bold text-gray-900">NCIP, Alabel Sarangani</span>
                   </div>
                   <div className="text-xs text-gray-500">Digital Certificate</div>
                 </div>

@@ -1012,8 +1012,8 @@ const UserDashboard = () => {
               <span className="text-blue-600 font-bold text-lg">N</span>
             </div>
             <div className="text-white">
-              <h2 className="font-bold text-lg">NCIP Portal</h2>
-              <p className="text-blue-200 text-sm">User Dashboard</p>
+              <h2 className="font-bold text-lg">NCIP Alabel Sarangani</h2>
+              <p className="text-blue-200 text-sm">Digital Services Portal</p>
             </div>
           </div>
         </div>

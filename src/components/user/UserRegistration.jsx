@@ -1243,7 +1243,7 @@ const UserRegistration = () => {
                 alt="NCIP Logo" 
                 className="w-10 h-10 object-contain"
               />
-              <span className="text-gray-900 font-bold text-xl">NCIP Portal</span>
+              <span className="text-gray-900 font-bold text-xl">NCIP Alabel Sarangani</span>
             </div>
             <button
               onClick={() => navigate('/')}

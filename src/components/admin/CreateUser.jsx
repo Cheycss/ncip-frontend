@@ -456,7 +456,7 @@ const CreateUser = ({ onClose }) => {
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-blue-800">
                 <strong>Next Steps:</strong><br />
-                • The user can now log in to the NCIP Portal<br />
+                • The user can now log in to NCIP Alabel Sarangani Digital Services Portal<br />
                 • They will receive a welcome email with login instructions<br />
                 • No additional approval is required
               </p>
