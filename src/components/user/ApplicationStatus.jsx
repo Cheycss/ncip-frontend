@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { getApiUrl } from '../../config/api';
 import { FileText, Download, Eye, CheckCircle, Clock, XCircle, Image as ImageIcon, Upload } from 'lucide-react';
 
 const ApplicationStatus = () => {
@@ -62,13 +63,7 @@ const ApplicationStatus = () => {
       console.log('Token:', token ? 'exists' : 'missing');
       
       // Dynamic API URL helper
-      const getApiUrl = () => {
-        const currentHost = window.location.hostname;
-        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-          return `http://${currentHost}:3001`;
-        }
-        return 'http://localhost:3001';
-      };
+      // Using centralized API configuration
 
       const response = await fetch(`${getApiUrl()}/api/applications`, {
         headers: {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, File, Loader } from 'lucide-react';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const DocumentUpload = ({ 
   applicationId, 
@@ -13,14 +14,7 @@ const DocumentUpload = ({
   const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
 
-  // Dynamic API URL helper
-  const getApiUrl = () => {
-    const currentHost = window.location.hostname;
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-      return `http://${currentHost}:3001`;
-    }
-    return 'http://localhost:3001';
-  };
+  // Using centralized API URL configuration
 
   const allowedTypes = requirement.file_types_allowed 
     ? (typeof requirement.file_types_allowed === 'string' 

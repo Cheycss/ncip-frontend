@@ -2,20 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, XCircle, AlertTriangle, FileText, Download } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const RequirementsList = ({ applicationId, purposeId, onComplianceUpdate }) => {
   const [requirements, setRequirements] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const getApiUrl = () => {
-    const currentHost = window.location.hostname;
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-      return `http://${currentHost}:3001`;
-    }
-    return 'http://localhost:3001';
-  };
 
   useEffect(() => {
     if (applicationId && purposeId) {

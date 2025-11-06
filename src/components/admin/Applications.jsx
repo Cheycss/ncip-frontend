@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'
-import axios from 'axios'
-import { Eye, MessageSquare, CheckCircle, XCircle, Clock, ArrowLeft, ArrowRight, FileText, Download, Archive, AlertTriangle, Calendar, X } from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { Eye, MessageSquare, CheckCircle, XCircle, Clock, ArrowLeft, ArrowRight, FileText, Download, Archive, AlertTriangle, Calendar, X } from 'lucide-react';
+import axios from 'axios';
+import { getApiBaseUrl } from '../../config/api';
 import CocFormViewer from './CocFormViewer'
 
 const Applications = ({ onStatsUpdate }) => {
@@ -16,14 +17,6 @@ const Applications = ({ onStatsUpdate }) => {
   const [showFormViewer, setShowFormViewer] = useState(false)
 
   // Dynamic API URL - works both locally and on network
-  const getApiBaseUrl = () => {
-    const currentHost = window.location.hostname;
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-      return `http://${currentHost}:3001/api`;
-    }
-    return 'http://localhost:3001/api';
-  };
-
   const API_BASE_URL = getApiBaseUrl()
 
   const getAuthHeaders = () => {

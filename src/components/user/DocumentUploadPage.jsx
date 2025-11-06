@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Upload, CheckCircle, AlertCircle, FileText, X, Download, ArrowLeft, Users, Clock, CheckCircle2 } from 'lucide-react';
 import { getRequirementsByPurpose, getPurposeById } from '../../utils/purposeRequirements';
 import EnhancedFileUpload from '../shared/EnhancedFileUpload';
+import { getApiUrl } from '../../config/api';
 
 const DocumentUploadPage = ({ application, onBack }) => {
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
@@ -107,11 +108,7 @@ const DocumentUploadPage = ({ application, onBack }) => {
 
     try {
       const token = localStorage.getItem('ncip_token');
-      const apiUrl = window.location.hostname.includes('vercel.app') 
-        ? 'https://ncip-backend.onrender.com'
-        : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3001'
-        : `http://${window.location.hostname}:3001`;
+      const apiUrl = getApiUrl();
       
       // Update application status in backend
       const response = await fetch(`${apiUrl}/api/applications/${application.id}/documents-status`, {

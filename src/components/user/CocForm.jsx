@@ -9,6 +9,7 @@ import CocFormPage5 from './CocFormPage5';
 import CocFormPage6Review from './CocFormPage6';
 import FormDataSummary from '../shared/FormDataSummary';
 import { seedDemoData } from '../../utils/demoDataSeeder';
+import { getApiUrl } from '../../config/api';
 
 const CocForm = () => {
   const navigate = useNavigate();
@@ -141,11 +142,7 @@ const CocForm = () => {
       
       // Save application to backend database
       const token = localStorage.getItem('ncip_token');
-      const apiUrl = window.location.hostname.includes('vercel.app') 
-        ? 'https://ncip-backend.onrender.com'
-        : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3001'
-        : `http://${window.location.hostname}:3001`;
+      const apiUrl = getApiUrl();
       
       const applicationId = `COC-${Date.now()}`;
       const newApplication = {
