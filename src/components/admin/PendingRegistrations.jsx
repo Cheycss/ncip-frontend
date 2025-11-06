@@ -24,13 +24,25 @@ const PendingRegistrations = () => {
   const fetchPendingRegistrations = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${getApiUrl()}/api/pending-registrations/pending`);
+      const token = localStorage.getItem('ncip_token');
+      const response = await axios.get(
+        `${getApiUrl()}/api/pending-registrations/pending`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
       if (response.data.success) {
         setRegistrations(response.data.registrations);
       }
     } catch (error) {
       console.error('Error fetching pending registrations:', error);
-      alert('Failed to fetch pending registrations');
+      if (error.response?.status === 403) {
+        alert('Access denied. Admin privileges required.');
+      } else {
+        alert('Failed to fetch pending registrations');
+      }
     } finally {
       setLoading(false);
     }
@@ -54,7 +66,16 @@ const PendingRegistrations = () => {
       // Use registration_id or id, whichever exists
       const registrationId = selectedRegistration.registration_id || selectedRegistration.id;
       console.log('Approving registration with ID:', registrationId, 'Full object:', selectedRegistration);
-      const response = await axios.post(`${getApiUrl()}/api/pending-registrations/approve/${registrationId}`);
+      const token = localStorage.getItem('ncip_token');
+      const response = await axios.post(
+        `${getApiUrl()}/api/pending-registrations/approve/${registrationId}`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
       
       if (response.data.success) {
         alert('Registration approved successfully! User account has been created.');
@@ -84,9 +105,18 @@ const PendingRegistrations = () => {
       setProcessing(true);
       // Use registration_id or id, whichever exists
       const registrationId = selectedRegistration.registration_id || selectedRegistration.id;
-      const response = await axios.post(`${getApiUrl()}/api/pending-registrations/reject/${registrationId}`, {
-        comment: rejectionComment.trim()
-      });
+      const token = localStorage.getItem('ncip_token');
+      const response = await axios.post(
+        `${getApiUrl()}/api/pending-registrations/reject/${registrationId}`,
+        {
+          comment: rejectionComment.trim()
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
       
       if (response.data.success) {
         alert('Registration rejected successfully! User has been notified via email.');
