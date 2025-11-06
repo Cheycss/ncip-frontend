@@ -139,41 +139,56 @@ const CocForm = () => {
         });
       }
       
-      // Save to user-specific applications
+      // Save application to backend database
+      const token = localStorage.getItem('ncip_token');
+      const apiUrl = window.location.hostname.includes('vercel.app') 
+        ? 'https://ncip-backend.onrender.com'
+        : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:3001'
+        : `http://${window.location.hostname}:3001`;
+      
+      const applicationId = `COC-${Date.now()}`;
+      const newApplication = {
+        application_number: applicationId,
+        service_type: 'Certificate of Confirmation',
+        purpose: selectedPurpose,
+        status: 'submitted',
+        form_data: completeFormData,
+        requirements: processedRequirements
+      };
+      
+      // Save to backend
+      const response = await fetch(`${apiUrl}/api/applications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newApplication)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to submit application');
+      }
+      
+      const savedApplication = await response.json();
+      const dbApplicationId = savedApplication.application?.application_id || applicationId;
+      
+      // Also save to localStorage for quick access (optional)
       const userApplicationsKey = `user_applications_${userId}`;
       const existingUserApplications = JSON.parse(localStorage.getItem(userApplicationsKey) || '[]');
-      const applicationId = `COC-${Date.now()}`;
-      const newUserApplication = {
-        id: applicationId,
+      const localApplication = {
+        id: dbApplicationId,
         userId: currentUser.id,
         userEmail: currentUser.email,
         type: 'Certificate of Confirmation',
         serviceType: 'Certificate of Confirmation',
         purpose: selectedPurpose,
-        status: 'under_review',
+        status: 'submitted',
         submittedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         data: completeFormData,
-        requirements: processedRequirements
-      };
-      
-      const updatedUserApplications = [...existingUserApplications, newUserApplication];
-      localStorage.setItem(userApplicationsKey, JSON.stringify(updatedUserApplications));
-      
-      // Also save to admin applications for review
-      const existingAdminApplications = JSON.parse(localStorage.getItem('applications') || '[]');
-      const newAdminApplication = {
-        id: applicationId,
-        userId: currentUser.id,
-        email: currentUser.email,
-        firstName: currentUser.firstName || completeFormData.firstName || 'Unknown',
-        lastName: currentUser.lastName || completeFormData.lastName || 'User',
-        serviceType: 'Certificate of Confirmation',
-        purpose: selectedPurpose,
-        status: 'under_review',
-        submittedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        formData: completeFormData,
         requirements: processedRequirements,
         pageStatuses: {
           page1: 'completed',

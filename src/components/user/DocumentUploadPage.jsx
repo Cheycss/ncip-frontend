@@ -96,7 +96,7 @@ const DocumentUploadPage = ({ application, onBack }) => {
     localStorage.setItem(`uploads_${application.id}`, JSON.stringify(newUploadedFiles));
   };
 
-  const handleSubmitDocuments = () => {
+  const handleSubmitDocuments = async () => {
     const requiredDocs = requirements.filter(req => req.required);
     const uploadedRequired = requiredDocs.filter(req => uploadedFiles[req.id]);
 
@@ -105,25 +105,56 @@ const DocumentUploadPage = ({ application, onBack }) => {
       return;
     }
 
-    // Update application status
-    const applications = JSON.parse(localStorage.getItem('ncip_applications') || '[]');
-    const updatedApps = applications.map(app => {
-      if (app.id === application.id) {
-        return {
-          ...app,
+    try {
+      const token = localStorage.getItem('ncip_token');
+      const apiUrl = window.location.hostname.includes('vercel.app') 
+        ? 'https://ncip-backend.onrender.com'
+        : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:3001'
+        : `http://${window.location.hostname}:3001`;
+      
+      // Update application status in backend
+      const response = await fetch(`${apiUrl}/api/applications/${application.id}/documents-status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: 'documents_submitted',
           documentsUploaded: true,
           uploadedDocuments: uploadedFiles,
-          documentsSubmittedAt: new Date().toISOString(),
-          status: 'documents_submitted'
-        };
+          documentsSubmittedAt: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update application status');
       }
-      return app;
-    });
-    
-    localStorage.setItem('ncip_applications', JSON.stringify(updatedApps));
-    
-    alert('Documents submitted successfully!');
-    if (onBack) onBack();
+
+      // Also update localStorage for immediate UI update
+      const applications = JSON.parse(localStorage.getItem('ncip_applications') || '[]');
+      const updatedApps = applications.map(app => {
+        if (app.id === application.id) {
+          return {
+            ...app,
+            documentsUploaded: true,
+            uploadedDocuments: uploadedFiles,
+            documentsSubmittedAt: new Date().toISOString(),
+            status: 'documents_submitted'
+          };
+        }
+        return app;
+      });
+      
+      localStorage.setItem('ncip_applications', JSON.stringify(updatedApps));
+      
+      alert('Documents submitted successfully!');
+      if (onBack) onBack();
+    } catch (error) {
+      console.error('Error submitting documents:', error);
+      alert('Failed to submit documents. Please try again.');
+    }
   };
 
   const getUploadProgress = () => {
