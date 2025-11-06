@@ -11,7 +11,7 @@ const PendingRegistrations = () => {
   const [actionType, setActionType] = useState(''); // 'approve' or 'reject'
   const [rejectionComment, setRejectionComment] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [documentZoom, setDocumentZoom] = useState(75); // Start at 75%
+  const [documentZoom, setDocumentZoom] = useState(100); // Start at 100%
   const [showFullImage, setShowFullImage] = useState(false);
   const [documentRotation, setDocumentRotation] = useState(0);
 
@@ -464,20 +464,20 @@ const PendingRegistrations = () => {
               </button>
             </div>
             
-            {/* Image Container */}
-            <div className="flex-1 overflow-auto flex items-center justify-center p-4">
-              <div 
-                className="transition-transform"
-                style={{
-                  transform: `scale(${documentZoom / 100}) rotate(${documentRotation}deg)`,
-                  transformOrigin: 'center center'
-                }}
-              >
+            {/* Image Container - Properly Scrollable */}
+            <div className="flex-1 overflow-auto p-4">
+              <div className="flex items-start justify-center min-h-full">
                 <img
                   src={selectedRegistration.birth_certificate_data}
                   alt="Birth Certificate - Full View"
-                  className="max-w-none h-auto rounded-lg shadow-2xl"
-                  style={{ maxHeight: 'none' }}
+                  className="rounded-lg shadow-2xl"
+                  style={{
+                    width: `${documentZoom}%`,
+                    height: 'auto',
+                    transform: `rotate(${documentRotation}deg)`,
+                    transformOrigin: 'center center',
+                    transition: 'transform 0.3s ease, width 0.3s ease'
+                  }}
                 />
               </div>
             </div>

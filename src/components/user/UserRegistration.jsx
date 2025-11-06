@@ -1177,40 +1177,41 @@ const UserRegistration = () => {
 
   return (
     <>
-      {/* Custom Scrollbar Styles */}
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
-          border-radius: 10px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
-          border-radius: 10px;
-          border: 1px solid #1e40af;
-          box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(180deg, #2563eb 0%, #1e40af 100%);
-          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
-          transform: scale(1.1);
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb:active {
-          background: linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 100%);
-        }
-        
-        /* Firefox */
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: #3b82f6 #dbeafe;
-        }
-      `}</style>
+      <style>
+        {`
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
+            border-radius: 10px;
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 10px;
+            border: 1px solid #1e40af;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #2563eb 0%, #1e40af 100%);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+            transform: scale(1.1);
+          }
+          
+          .custom-scrollbar::-webkit-scrollbar-thumb:active {
+            background: linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 100%);
+          }
+          
+          /* Firefox */
+          .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #3b82f6 #dbeafe;
+          }
+        `}
+      </style>
       
       <div 
         className="min-h-screen flex items-center justify-center p-4 relative"
