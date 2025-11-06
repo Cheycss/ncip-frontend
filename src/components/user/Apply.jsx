@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { FileText, ChevronDown, CheckCircle, ArrowRight, Info, Shield, Briefcase, GraduationCap, Home, Download, Edit, Upload, User, Users, Eye } from 'lucide-react'
 import { getPurposes, getRequirementsByPurpose } from '../../utils/purposeRequirements'
+import { getApiUrl } from '../../config/api'
 
 const Apply = ({ onSelectService }) => {
   const [selectedPurpose, setSelectedPurpose] = useState(null)
@@ -97,14 +98,7 @@ const Apply = ({ onSelectService }) => {
     try {
       console.log('Starting PDF download...');
       
-      // Dynamic API URL helper
-      const getApiUrl = () => {
-        const currentHost = window.location.hostname;
-        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-          return `http://${currentHost}:3001`;
-        }
-        return 'http://localhost:3001';
-      };
+      // Using centralized API URL configuration
 
       // Download the COC form PDF from backend
       const response = await fetch(`${getApiUrl()}/api/pdf/coc-form`);

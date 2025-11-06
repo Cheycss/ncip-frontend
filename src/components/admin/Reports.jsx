@@ -16,6 +16,7 @@ import {
   AlertCircle,
   AlertTriangle
 } from 'lucide-react'
+import { getApiUrl } from '../../config/api'
 
 const Reports = () => {
   const [reportData, setReportData] = useState({
@@ -40,14 +41,7 @@ const Reports = () => {
     try {
       const token = localStorage.getItem('ncip_token')
       
-      // Dynamic API URL helper
-      const getApiUrl = () => {
-        const currentHost = window.location.hostname;
-        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-          return `http://${currentHost}:3001`;
-        }
-        return 'http://localhost:3001';
-      };
+      // Using centralized API URL configuration
 
       // Fetch applications from API
       const appsResponse = await fetch(`${getApiUrl()}/api/applications/admin/all`, {

@@ -4,6 +4,7 @@ import { ArrowLeft, Loader, FileText } from 'lucide-react';
 import RequirementsList from './RequirementsList';
 import ComplianceDashboard from './ComplianceDashboard';
 import axios from 'axios';
+import { getApiUrl } from '../../config/api';
 
 const ApplicationDocuments = () => {
   const { applicationId } = useParams();
@@ -30,14 +31,7 @@ const ApplicationDocuments = () => {
       console.log('Loading application:', applicationId);
       console.log('Token:', token ? 'exists' : 'missing');
       
-      // Dynamic API URL helper
-      const getApiUrl = () => {
-        const currentHost = window.location.hostname;
-        if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-          return `http://${currentHost}:3001`;
-        }
-        return 'http://localhost:3001';
-      };
+      // Using centralized API URL configuration
 
       const response = await axios.get(
         `${getApiUrl()}/api/applications/${applicationId}`,
