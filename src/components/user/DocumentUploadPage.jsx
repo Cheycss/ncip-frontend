@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, CheckCircle, AlertCircle, FileText, X, Download, ArrowLeft, Users, Clock, CheckCircle2 } from 'lucide-react';
-import { getRequirementsByPurpose, getPurposeById } from '../../utils/purposeRequirements';
+import { Upload, CheckCircle, AlertCircle, FileText, X, Download, ArrowLeft, Users, Clock, CheckCircle2, Calendar, AlertTriangle } from 'lucide-react';
+import { getRequirementsByPurpose, getPurposeById, getPurposes } from '../../utils/purposeRequirements';
 import EnhancedFileUpload from '../shared/EnhancedFileUpload';
 import { getApiUrl } from '../../config/api';
 
@@ -11,23 +11,49 @@ const DocumentUploadPage = ({ application, onBack }) => {
   const [purpose, setPurpose] = useState(null);
   const [uploadProgress, setUploadProgress] = useState({});
   const [applicationStatus, setApplicationStatus] = useState('draft');
+  const [uploadedFiles, setUploadedFiles] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [deadline, setDeadline] = useState(null);
+  const [daysRemaining, setDaysRemaining] = useState(null);
 
   // Load application documents and requirements
   useEffect(() => {
     if (application && application.id) {
       loadApplicationDocuments();
       loadRequirements();
+      
+      // Calculate deadline (20 days from submission)
+      if (application.submissionDeadline) {
+        const deadlineDate = new Date(application.submissionDeadline);
+        setDeadline(deadlineDate);
+        
+        // Calculate days remaining
+        const today = new Date();
+        const timeDiff = deadlineDate - today;
+        const days = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        setDaysRemaining(days > 0 ? days : 0);
+      }
     }
   }, [application]);
 
   const loadApplicationDocuments = async () => {
     try {
-      const response = await fetch(`/api/uploads/application/${application.id}`);
-      const result = await response.json();
+      const apiUrl = getApiUrl();
+      const token = localStorage.getItem('ncip_token');
       
-      if (result.success) {
-        setUploadedDocuments(result.data.documents || []);
-        setApplicationStatus(result.data.application.status);
+      const response = await fetch(`${apiUrl}/api/documents/application/${application.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setUploadedDocuments(result.documents || []);
+        }
+      } else {
+        console.log('No documents found for this application');
       }
     } catch (error) {
       console.error('Error loading documents:', error);
@@ -36,16 +62,57 @@ const DocumentUploadPage = ({ application, onBack }) => {
     }
   };
 
-  const loadRequirements = () => {
-    if (application && application.purpose) {
-      const purposeData = getPurposeById(application.purpose);
-      const reqs = getRequirementsByPurpose(application.purpose);
-      setPurpose(purposeData);
-      setRequirements(reqs);
+  const loadRequirements = async () => {
+    try {
+      console.log('Loading requirements for application:', application);
+      setLoading(true);
+      
+      // Get purpose from application
+      const appPurpose = application?.purpose || 'Educational Assistance';
+      
+      // Try to get all purposes and find matching one
+      const purposes = await getPurposes();
+      console.log('Available purposes:', purposes);
+      
+      // Find purpose by name (case-insensitive)
+      const purposeData = purposes.find(p => 
+        p.name?.toLowerCase() === appPurpose.toLowerCase() ||
+        p.purpose_name?.toLowerCase() === appPurpose.toLowerCase()
+      );
+      
+      if (purposeData) {
+        console.log('Found matching purpose:', purposeData);
+        setPurpose(purposeData);
+        
+        // Get requirements from the purpose object
+        const reqs = purposeData.requirements || [];
+        console.log('Requirements from purpose:', reqs);
+        setRequirements(Array.isArray(reqs) ? reqs : []);
+      } else {
+        // Set default requirements if purpose not found
+        console.log('Purpose not found for:', appPurpose, 'Using defaults');
+        setPurpose({ name: appPurpose, description: 'Application requirements' });
+        setRequirements([
+          { id: 'birth_cert', name: 'Birth Certificate (PSA Copy)', required: true },
+          { id: 'valid_id', name: 'Valid Government ID', required: true },
+          { id: 'barangay_clearance', name: 'Barangay Clearance', required: true },
+          { id: 'proof_income', name: 'Proof of Income', required: false }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading requirements:', error);
+      // Ensure requirements is always an array even on error
+      setPurpose({ name: 'Default', description: 'Application requirements' });
+      setRequirements([
+        { id: 'birth_cert', name: 'Birth Certificate', required: true },
+        { id: 'valid_id', name: 'Valid ID', required: true }
+      ]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleFileUpload = (requirementId, event) => {
+  const handleFileUpload = async (requirementId, event) => {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -64,28 +131,57 @@ const DocumentUploadPage = ({ application, onBack }) => {
 
     setUploading(true);
 
-    // Simulate upload (in real app, upload to server)
-    setTimeout(() => {
-      const fileData = {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        uploadedAt: new Date().toISOString(),
-        status: 'uploaded'
-      };
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('requirementId', requirementId);
+      formData.append('applicationId', application.id);
 
-      const newUploadedFiles = {
-        ...uploadedFiles,
-        [requirementId]: fileData
-      };
+      const token = localStorage.getItem('ncip_token');
+      const apiUrl = getApiUrl();
+      
+      // Upload to backend
+      const response = await fetch(`${apiUrl}/api/applications/${application.id}/upload-requirement`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
 
-      setUploadedFiles(newUploadedFiles);
+      const result = await response.json();
       
-      // Save to localStorage
-      localStorage.setItem(`uploads_${application.id}`, JSON.stringify(newUploadedFiles));
-      
+      if (result.success) {
+        const fileData = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          uploadedAt: new Date().toISOString(),
+          status: 'uploaded',
+          fileUrl: result.fileUrl,
+          file: file // Store the actual file object for later submission
+        };
+
+        const newUploadedFiles = {
+          ...uploadedFiles,
+          [requirementId]: fileData
+        };
+
+        setUploadedFiles(newUploadedFiles);
+        localStorage.setItem(`uploads_${application.id}`, JSON.stringify(newUploadedFiles));
+        
+        // Show success message
+        console.log(`✅ Successfully uploaded ${file.name}`);
+      } else {
+        alert('Failed to upload file: ' + (result.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload file. Please try again.');
+    } finally {
       setUploading(false);
-    }, 1000);
+    }
   };
 
   const handleRemoveFile = (requirementId) => {
@@ -98,6 +194,12 @@ const DocumentUploadPage = ({ application, onBack }) => {
   };
 
   const handleSubmitDocuments = async () => {
+    // Safety check
+    if (!Array.isArray(requirements)) {
+      alert('Requirements not loaded. Please refresh the page.');
+      return;
+    }
+    
     const requiredDocs = requirements.filter(req => req.required);
     const uploadedRequired = requiredDocs.filter(req => uploadedFiles[req.id]);
 
@@ -107,54 +209,94 @@ const DocumentUploadPage = ({ application, onBack }) => {
     }
 
     try {
-      const token = localStorage.getItem('ncip_token');
       const apiUrl = getApiUrl();
+      const token = localStorage.getItem('ncip_token');
       
-      // Update application status in backend
-      const response = await fetch(`${apiUrl}/api/applications/${application.id}/documents-status`, {
-        method: 'PUT',
+      // Create FormData with all uploaded files
+      const formData = new FormData();
+      
+      // Add files to FormData
+      Object.entries(uploadedFiles).forEach(([reqId, fileData]) => {
+        // Note: In production, you'd store actual File objects
+        // For now, we'll send metadata
+        formData.append(reqId, JSON.stringify(fileData));
+      });
+      
+      // Submit requirements to backend
+      const response = await fetch(`${apiUrl}/api/applications/${application.id}/submit-requirements`, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          status: 'documents_submitted',
-          documentsUploaded: true,
-          uploadedDocuments: uploadedFiles,
-          documentsSubmittedAt: new Date().toISOString()
-        })
+        body: formData
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update application status');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit requirements');
       }
 
-      // Also update localStorage for immediate UI update
-      const applications = JSON.parse(localStorage.getItem('ncip_applications') || '[]');
-      const updatedApps = applications.map(app => {
-        if (app.id === application.id) {
-          return {
-            ...app,
-            documentsUploaded: true,
-            uploadedDocuments: uploadedFiles,
-            documentsSubmittedAt: new Date().toISOString(),
-            status: 'documents_submitted'
-          };
-        }
-        return app;
-      });
+      const result = await response.json();
       
-      localStorage.setItem('ncip_applications', JSON.stringify(updatedApps));
-      
-      alert('Documents submitted successfully!');
-      if (onBack) onBack();
+      if (result.success) {
+        // Update local storage
+        const storedApps = JSON.parse(localStorage.getItem('ncip_applications') || '[]');
+        const updatedApps = storedApps.map(app => 
+          app.id === application.id 
+            ? { ...app, status: 'requirements_submitted', documentsUploaded: true }
+            : app
+        );
+        
+        localStorage.setItem('ncip_applications', JSON.stringify(updatedApps));
+        
+        // Trigger notification update
+        window.dispatchEvent(new Event('notificationUpdate'));
+        
+        alert('✅ Requirements submitted successfully! Admin will review them soon.');
+        if (onBack) onBack();
+      } else {
+        alert('❌ Failed to submit requirements: ' + (result.message || 'Please try again'));
+      }
     } catch (error) {
-      console.error('Error submitting documents:', error);
-      alert('Failed to submit documents. Please try again.');
+      console.error('Error submitting requirements:', error);
+      alert('❌ Failed to submit requirements: ' + error.message);
     }
   };
 
+  // Early returns - check loading and null states FIRST
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading requirements...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!purpose) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading requirements...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Safe to access application and purpose now
   const getUploadProgress = () => {
+    // Safety check - ensure requirements is an array
+    if (!Array.isArray(requirements) || requirements.length === 0) {
+      return {
+        uploaded: 0,
+        total: 0,
+        percentage: 0
+      };
+    }
+    
     const requiredDocs = requirements.filter(req => req.required);
     const uploadedCount = requiredDocs.filter(req => uploadedFiles[req.id]).length;
     return {
@@ -166,7 +308,15 @@ const DocumentUploadPage = ({ application, onBack }) => {
 
   const progress = getUploadProgress();
 
-  if (!application || !purpose) {
+  // Debug logging
+  console.log('DocumentUploadPage render:', {
+    application,
+    purpose,
+    requirements,
+    requirementsLength: requirements?.length
+  });
+
+  if (!application) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -178,14 +328,14 @@ const DocumentUploadPage = ({ application, onBack }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-6">
       <div className="max-w-5xl mx-auto px-4">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl border-2 border-blue-100 p-8 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Upload Required Documents</h1>
-              <p className="text-gray-600 mt-2">Application ID: <span className="font-semibold">{application.applicationId}</span></p>
+              <p className="text-gray-600 mt-2">Application #: <span className="font-semibold">{application.application_number}</span></p>
             </div>
             <div className="text-right">
               <div className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-lg font-semibold">

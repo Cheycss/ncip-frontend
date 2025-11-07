@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, MessageSquare, CheckCircle, XCircle, Clock, ArrowLeft, ArrowRight, FileText, Download, Archive, AlertTriangle, Calendar, X } from 'lucide-react';
+import { Eye, MessageSquare, CheckCircle, XCircle, Clock, ArrowLeft, ArrowRight, FileText, Download, Archive, AlertTriangle, Calendar, X, ZoomIn, ZoomOut, RotateCw, RotateCcw, FileX } from 'lucide-react';
 import axios from 'axios';
 import { getApiBaseUrl } from '../../config/api';
 import CocFormViewer from './CocFormViewer'
@@ -15,6 +15,12 @@ const Applications = ({ onStatsUpdate }) => {
   const [currentCommentPage, setCurrentCommentPage] = useState('')
   const [commentText, setCommentText] = useState('')
   const [showFormViewer, setShowFormViewer] = useState(false)
+  const [currentViewingPage, setCurrentViewingPage] = useState(null)
+  const [documentZoom, setDocumentZoom] = useState(100)
+  const [documentRotation, setDocumentRotation] = useState(0)
+  const [pageStatus, setPageStatus] = useState('pending')
+  const [comments, setComments] = useState({})
+  const [currentComment, setCurrentComment] = useState('')
 
   // Dynamic API URL - works both locally and on network
   const API_BASE_URL = getApiBaseUrl()
@@ -25,16 +31,16 @@ const Applications = ({ onStatsUpdate }) => {
   }
 
   const transformApplication = (apiApp) => {
-    const firstName = apiApp?.applicant?.first_name || ''
-    const lastName = apiApp?.applicant?.last_name || ''
-    const applicantName = [firstName, lastName].filter(Boolean).join(' ') || apiApp?.coc_form?.applicant_name || ''
+    const firstName = apiApp?.applicant?.first_name || apiApp?.first_name || ''
+    const lastName = apiApp?.applicant?.last_name || apiApp?.last_name || ''
+    const applicantName = [firstName, lastName].filter(Boolean).join(' ') || apiApp?.applicant_name || 'Unknown'
 
     return {
       id: apiApp.application_id,
       applicationNumber: apiApp.application_number,
       serviceType: apiApp.service_type,
       purpose: apiApp.purpose,
-      status: apiApp.application_status,
+      status: apiApp.application_status || apiApp.status,
       priority: apiApp.priority,
       submittedAt: apiApp.submitted_at,
       createdAt: apiApp.created_at,
@@ -43,14 +49,15 @@ const Applications = ({ onStatsUpdate }) => {
       firstName,
       lastName,
       applicantName,
-      email: apiApp?.applicant?.email || '',
+      email: apiApp?.applicant?.email || apiApp?.email || 'No email',
       phoneNumber: apiApp?.applicant?.phone_number || '',
       address: apiApp?.applicant?.address || '',
       formData: apiApp?.coc_form || {},
       requirements: apiApp?.requirements || null,
       pageStatuses: apiApp?.page_statuses || {},
       comments: apiApp?.comments || {},
-      reviewProgress: apiApp?.review_progress || 0
+      reviewProgress: apiApp?.review_progress || 0,
+      documents: apiApp?.documents || []
     }
   }
 
@@ -79,6 +86,49 @@ const Applications = ({ onStatsUpdate }) => {
     const diffTime = expirationDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const handlePageApproval = async (pageNum, status) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/applications/${selectedApplication.id}/page-approval`,
+        {
+          pageNumber: pageNum,
+          status: status,
+          reviewerNotes: currentComment
+        },
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data.success) {
+        // Update local state
+        setSelectedApplication(prev => ({
+          ...prev,
+          pageStatuses: {
+            ...prev.pageStatuses,
+            [`page${pageNum}`]: status
+          }
+        }));
+        
+        // Check if all pages are approved
+        const allPagesApproved = [1,2,3,4,5,6].every(num => {
+          if (num === pageNum) return status === 'approved';
+          return selectedApplication.pageStatuses?.[`page${num}`] === 'approved';
+        });
+        
+        if (allPagesApproved) {
+          // Update application status to ready for requirements
+          await updateApplicationStatus(selectedApplication.id, 'ready_for_requirements');
+          alert('All pages approved! User has been notified to submit requirements.');
+        }
+        
+        setCurrentViewingPage(null);
+        alert(`Page ${pageNum} ${status}!`);
+      }
+    } catch (error) {
+      console.error('Error updating page status:', error);
+      alert('Failed to update page status');
+    }
   };
 
   const loadApplications = async () => {
@@ -426,17 +476,7 @@ const Applications = ({ onStatsUpdate }) => {
     }
   };
 
-  const handlePageApproval = (page, action) => {
-    if (action === 'reject') {
-      setCurrentCommentPage(page)
-      setShowCommentModal(true)
-    } else {
-      updatePageStatus(selectedApplication.id, page, 'approved')
-      if (currentPage < 5) {
-        setCurrentPage(currentPage + 1)
-      }
-    }
-  }
+  // Removed duplicate function - using async version above
 
   const handleCommentSubmit = () => {
     updatePageStatus(selectedApplication.id, currentCommentPage, 'rejected', commentText)
@@ -460,9 +500,12 @@ const Applications = ({ onStatsUpdate }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200'
+      case 'submitted': return 'bg-blue-50 text-blue-700 border-blue-200'
       case 'approved': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
       case 'rejected': return 'bg-red-50 text-red-700 border-red-200'
       case 'under_review': return 'bg-blue-50 text-blue-700 border-blue-200'
+      case 'ready_for_requirements': return 'bg-green-50 text-green-700 border-green-200'
+      case 'certificate_issued': return 'bg-purple-50 text-purple-700 border-purple-200'
       default: return 'bg-gray-50 text-gray-700 border-gray-200'
     }
   }
@@ -572,7 +615,139 @@ const Applications = ({ onStatsUpdate }) => {
             </div>
           ) : (
             <>
-              {selectedApplication.formData && Object.keys(selectedApplication.formData).length > 0 ? (
+              {selectedApplication.documents && selectedApplication.documents.length > 0 ? (
+                <div className="space-y-4">
+                  {/* Current Page Viewer */}
+                  {currentViewingPage ? (
+                    <div className="bg-white rounded-lg border-2 border-blue-200">
+                      <div className="bg-blue-50 p-4 border-b border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold text-gray-900">Viewing Page {currentViewingPage}</h3>
+                          <button
+                            onClick={() => setCurrentViewingPage(null)}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        {/* PDF Viewer */}
+                        <div className="relative bg-gray-100 rounded-lg" style={{ height: '600px' }}>
+                          <iframe
+                            src={`${API_BASE_URL}/applications/documents/view/${selectedApplication.id}/${selectedApplication.documents.find(d => d.type === `page${currentViewingPage}`)?.fileName}?token=${localStorage.getItem('ncip_token')}`}
+                            className="w-full h-full border-0"
+                            title={`Page ${currentViewingPage}`}
+                          />
+                        </div>
+                        {/* View Controls */}
+                        <div className="flex items-center justify-center gap-4 mt-4">
+                          <a
+                            href={`${API_BASE_URL}/applications/documents/view/${selectedApplication.id}/${selectedApplication.documents.find(d => d.type === `page${currentViewingPage}`)?.fileName}?token=${localStorage.getItem('ncip_token')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Open in New Tab
+                          </a>
+                          <a
+                            href={`${API_BASE_URL}/applications/documents/view/${selectedApplication.id}/${selectedApplication.documents.find(d => d.type === `page${currentViewingPage}`)?.fileName}?token=${localStorage.getItem('ncip_token')}`}
+                            download
+                            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center gap-2"
+                          >
+                            <Download className="w-4 h-4" />
+                            Download
+                          </a>
+                        </div>
+                        {/* Page Approval Actions */}
+                        <div className="flex justify-center gap-4 mt-6">
+                          <button
+                            onClick={() => handlePageApproval(currentViewingPage, 'approved')}
+                            className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                          >
+                            <CheckCircle className="w-5 h-5" />
+                            Approve Page {currentViewingPage}
+                          </button>
+                          <button
+                            onClick={() => handlePageApproval(currentViewingPage, 'rejected')}
+                            className="flex items-center gap-2 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                          >
+                            <XCircle className="w-5 h-5" />
+                            Reject Page {currentViewingPage}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Page Grid View */
+                    <>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">COC Forms Submitted</h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        {[1, 2, 3, 4, 5, 6].map((pageNum) => {
+                          const pageDoc = selectedApplication.documents.find(doc => 
+                            doc.type === `page${pageNum}`
+                          );
+                          const pageStatus = selectedApplication.pageStatuses?.[`page${pageNum}`] || 'pending';
+                          return (
+                            <div key={pageNum} className="bg-white rounded-lg border-2 border-gray-200 hover:border-blue-400 transition-all cursor-pointer"
+                                 onClick={() => pageDoc && setCurrentViewingPage(pageNum)}>
+                              <div className="p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="font-medium text-gray-900">Page {pageNum}</h4>
+                                  {pageStatus === 'approved' && (
+                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Approved</span>
+                                  )}
+                                  {pageStatus === 'rejected' && (
+                                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">Rejected</span>
+                                  )}
+                                  {pageStatus === 'pending' && pageDoc && (
+                                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Review</span>
+                                  )}
+                                </div>
+                                {pageDoc ? (
+                                  <div className="text-center py-4">
+                                    <Eye className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                                    <p className="text-sm text-gray-600">Click to view</p>
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-4">
+                                    <FileX className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                    <p className="text-sm text-gray-500">Not uploaded</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Application Details */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <h4 className="font-medium text-gray-900 mb-2">Application Details</h4>
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div>
+                        <dt className="font-medium text-gray-500">Purpose:</dt>
+                        <dd className="text-gray-900">{selectedApplication.purpose || 'Not specified'}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-500">Service Type:</dt>
+                        <dd className="text-gray-900">{selectedApplication.serviceType}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-500">Submitted:</dt>
+                        <dd className="text-gray-900">{new Date(selectedApplication.submittedAt).toLocaleDateString()}</dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-gray-500">Status:</dt>
+                        <dd className="text-gray-900">{selectedApplication.status}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+              ) : selectedApplication.formData && Object.keys(selectedApplication.formData).length > 0 ? (
                 <CocFormViewer 
                   formData={selectedApplication.formData}
                   currentPage={currentPage}
@@ -580,20 +755,10 @@ const Applications = ({ onStatsUpdate }) => {
                   selectedPurpose={selectedApplication.purpose}
                 />
               ) : (
-                <div className="bg-gray-100 p-8 rounded-lg text-center">
-                  <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Form Data Available</h3>
-                  <p className="text-gray-600 mb-4">This application doesn't have form data to display.</p>
-                  <div className="text-left bg-white p-4 rounded border max-w-md mx-auto">
-                    <h4 className="font-semibold mb-2">Application Details:</h4>
-                    <p><strong>ID:</strong> {selectedApplication.id}</p>
-                    <p><strong>Applicant:</strong> {selectedApplication.applicantName || 'Unknown'}</p>
-                    <p><strong>Email:</strong> {selectedApplication.email || 'No email'}</p>
-                    <p><strong>Service:</strong> {selectedApplication.serviceType || 'Certificate of Confirmation'}</p>
-                    <p><strong>Purpose:</strong> {selectedApplication.purpose || 'Not specified'}</p>
-                    <p><strong>Status:</strong> {selectedApplication.status || 'pending'}</p>
-                    <p><strong>Submitted:</strong> {new Date(selectedApplication.createdAt).toLocaleDateString()}</p>
-                  </div>
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <h3 className="text-lg font-semibold mb-1">No Form Data Available</h3>
+                  <p className="text-gray-600">This application doesn't have form data to display.</p>
                 </div>
               )}
             </>
@@ -897,36 +1062,6 @@ const Applications = ({ onStatsUpdate }) => {
                             View Forms
                           </button>
 
-                          {/* Step 1: Approve/Reject Forms - For submitted applications */}
-                          {(application.status === 'pending' || application.status === 'under_review' || application.status === 'submitted') && (
-                            <>
-                              <button
-                                onClick={() => handleApproveApplication(application.id)}
-                                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                                title="Approve Forms - User can then upload requirements"
-                              >
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                                Approve Forms
-                              </button>
-                              <button
-                                onClick={() => handleRejectApplication(application.id)}
-                                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
-                                title="Reject Forms"
-                              >
-                                <XCircle className="w-4 h-4 mr-1" />
-                                Reject Forms
-                              </button>
-                            </>
-                          )}
-
-                          {/* Step 2: Requirements Review - For forms_approved status */}
-                          {application.status === 'forms_approved' && (
-                            <div className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg">
-                              <Clock className="w-4 h-4 mr-1" />
-                              Waiting for Requirements
-                            </div>
-                          )}
-
                           {/* Step 3: Approve Requirements - For requirements_submitted status */}
                           {application.status === 'requirements_submitted' && (
                             <>
@@ -1035,7 +1170,7 @@ const Applications = ({ onStatsUpdate }) => {
               </button>
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              {selectedApplication.formData ? (
+              {selectedApplication.formData && Object.keys(selectedApplication.formData).length > 0 ? (
                 <CocFormViewer 
                   formData={selectedApplication.formData}
                   currentPage={1}
@@ -1050,7 +1185,60 @@ const Applications = ({ onStatsUpdate }) => {
                   <p className="text-gray-600">This application doesn't have form data to display.</p>
                 </div>
               )}
+              
+              {/* Uploaded Documents Section */}
+              {selectedApplication.documents && selectedApplication.documents.length > 0 && (
+                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+                    <FileText className="w-5 h-5 mr-2" />
+                    Uploaded Documents ({selectedApplication.documents.length})
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedApplication.documents.map((doc, index) => (
+                      <div key={index} className="bg-white p-3 rounded-lg border border-blue-200 hover:border-blue-400 transition-colors">
+                        <div className="flex items-start">
+                          <FileText className="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate" title={doc.fileName}>
+                              {doc.fileName}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {doc.type?.replace('page', 'Page ')} • {new Date(doc.uploadedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+            
+            {/* Action Buttons Footer - Only show for submitted applications */}
+            {selectedApplication.status === 'submitted' && (
+              <div className="border-t border-gray-200 p-6 bg-gray-50 flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    handleRejectApplication(selectedApplication.id);
+                    closeViewers();
+                  }}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                >
+                  <XCircle className="w-5 h-5 mr-2" />
+                  Reject Application
+                </button>
+                <button
+                  onClick={() => {
+                    handleApproveApplication(selectedApplication.id);
+                    closeViewers();
+                  }}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                >
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Approve Forms
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

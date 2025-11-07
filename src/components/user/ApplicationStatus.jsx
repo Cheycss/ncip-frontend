@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiUrl } from '../../config/api';
-import { FileText, Download, Eye, CheckCircle, Clock, XCircle, Image as ImageIcon, Upload } from 'lucide-react';
+import { FileText, Download, Eye, CheckCircle, Clock, XCircle, Image as ImageIcon, Upload, ArrowLeft } from 'lucide-react';
+import DocumentUploadPage from './DocumentUploadPage';
 
 const ApplicationStatus = () => {
   const { user } = useAuth();
@@ -11,6 +12,8 @@ const ApplicationStatus = () => {
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState(null);
   const [showFormsModal, setShowFormsModal] = useState(false);
+  const [uploadingRequirements, setUploadingRequirements] = useState(false);
+  const [selectedApplicationForUpload, setSelectedApplicationForUpload] = useState(null);
 
   // Required forms/certificates with their images
   const requiredForms = [
@@ -81,10 +84,14 @@ const ApplicationStatus = () => {
         const mappedApplications = data.applications.map(app => ({
           id: app.application_id,
           application_id: app.application_id,
-          service: app.service_type || app.purpose || 'Certificate of Confirmation',
-          status: formatStatus(app.application_status),
+          application_number: app.application_number,
+          service: app.service_type || 'Certificate of Confirmation',
+          purpose: app.purpose || 'Not specified',
+          rawStatus: app.status || app.application_status, // Keep raw status for conditionals
+          status: formatStatus(app.status || app.application_status),
           dateSubmitted: new Date(app.submitted_at || app.created_at).toLocaleDateString(),
-          dateUpdated: new Date(app.updated_at).toLocaleDateString()
+          dateUpdated: new Date(app.updated_at).toLocaleDateString(),
+          submissionDeadline: app.submission_deadline ? new Date(app.submission_deadline) : null
         }));
         console.log('Mapped applications:', mappedApplications);
         setApplications(mappedApplications);
@@ -102,15 +109,20 @@ const ApplicationStatus = () => {
 
   const formatStatus = (status) => {
     const statusMap = {
-      'draft': 'Draft',
-      'submitted': 'Pending Review',
-      'under_review': 'Under Review',
+      'pending': 'Pending Review',
+      'submitted': 'Pending Admin Review',
+      'under_review': 'Admin Reviewing Forms',
       'approved': 'Approved',
       'rejected': 'Rejected',
-      'completed': 'Completed',
+      'processing': 'Processing',
+      'completed': 'Completed - COC Ready',
+      'ready_for_requirements': 'Forms Approved - Submit Requirements',
+      'requirements_submitted': 'Requirements Under Review',
+      'requirements_approved': 'Requirements Approved',
+      'certificate_issued': 'Certificate Issued',
       'cancelled': 'Cancelled'
     };
-    return statusMap[status] || status;
+    return statusMap[status?.toLowerCase()] || status || 'Unknown';
   };
 
   const getStatusColor = (status) => {
@@ -128,6 +140,46 @@ const ApplicationStatus = () => {
     }
   };
 
+  // If uploading requirements, show DocumentUploadPage
+  if (uploadingRequirements && selectedApplicationForUpload) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header with Back Button */}
+          <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl shadow-2xl text-white p-8">
+            <div className="flex items-center gap-4 mb-4">
+              <button
+                onClick={() => {
+                  setUploadingRequirements(false);
+                  setSelectedApplicationForUpload(null);
+                  fetchApplications(); // Refresh applications
+                }}
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl transition-all"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Back to Applications
+              </button>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">Upload Requirements</h1>
+            <p className="text-blue-100 text-lg">
+              Application #{selectedApplicationForUpload.application_number} - {selectedApplicationForUpload.purpose}
+            </p>
+          </div>
+          
+          {/* Document Upload Component */}
+          <DocumentUploadPage 
+            application={selectedApplicationForUpload}
+            onBack={() => {
+              setUploadingRequirements(false);
+              setSelectedApplicationForUpload(null);
+              fetchApplications(); // Refresh applications
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -140,13 +192,6 @@ const ApplicationStatus = () => {
                 Track the status of your submitted applications
               </p>
             </div>
-            <button
-              onClick={() => setShowFormsModal(true)}
-              className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center gap-2 border border-white/30"
-            >
-              <FileText className="w-5 h-5" />
-              View Required Forms
-            </button>
           </div>
         </div>
 
@@ -194,14 +239,125 @@ const ApplicationStatus = () => {
                     </span>
                   </div>
                   
-                  {/* Upload Documents Button */}
-                  <button
-                    onClick={() => navigate(`/application/${application.id}/documents`)}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
-                  >
-                    <Upload className="w-5 h-5" />
-                    Upload Required Documents
-                  </button>
+                  {/* Action Buttons Based on Status */}
+                  {application.rawStatus === 'ready_for_requirements' && (
+                    <div className="space-y-3">
+                      {/* Deadline Warning */}
+                      {application.submissionDeadline && (
+                        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded">
+                          <div className="flex items-start">
+                            <Clock className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-bold text-amber-900">Deadline for Requirements</p>
+                              <p className="text-xs text-amber-700 mt-1">
+                                Submit all requirements before: <span className="font-bold">{new Date(application.submissionDeadline).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                              </p>
+                              <p className="text-xs text-amber-600 mt-1">
+                                ({Math.ceil((new Date(application.submissionDeadline) - new Date()) / (1000 * 60 * 60 * 24))} days remaining)
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => {
+                          setSelectedApplicationForUpload(application);
+                          setUploadingRequirements(true);
+                        }}
+                        className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 animate-pulse"
+                      >
+                        <Upload className="w-5 h-5" />
+                        Upload Requirements Now
+                      </button>
+                    </div>
+                  )}
+                  
+                  {(application.rawStatus === 'certificate_issued' || application.status === 'Certificate Issued') && (
+                    <button
+                      onClick={async () => {
+                        const token = localStorage.getItem('ncip_token');
+                        const downloadUrl = `${getApiUrl()}/api/applications/${application.id}/certificate`;
+                        
+                        // First try to download
+                        try {
+                          const response = await fetch(downloadUrl, { 
+                            headers: { 'Authorization': `Bearer ${token}` } 
+                          });
+                          
+                          if (!response.ok) {
+                            // If certificate doesn't exist, generate it first
+                            console.log('🔄 Certificate not found, generating...');
+                            const generateUrl = `${getApiUrl()}/api/applications/${application.id}/regenerate-certificate`;
+                            
+                            const genResponse = await fetch(generateUrl, {
+                              method: 'POST',
+                              headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            
+                            const genData = await genResponse.json();
+                            
+                            if (genData.success) {
+                              console.log('✅ Certificate generated, downloading...');
+                              // Try download again
+                              const retryResponse = await fetch(downloadUrl, { 
+                                headers: { 'Authorization': `Bearer ${token}` } 
+                              });
+                              
+                              if (retryResponse.ok) {
+                                const blob = await retryResponse.blob();
+                                const blobUrl = window.URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = blobUrl;
+                                link.download = `COC-${application.application_number || application.id}.pdf`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(blobUrl);
+                              } else {
+                                alert('Certificate generated but download failed. Please try again.');
+                              }
+                            } else {
+                              alert('Failed to generate certificate. Please contact support.');
+                            }
+                          } else {
+                            // Certificate exists, download it
+                            const blob = await response.blob();
+                            const blobUrl = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = blobUrl;
+                            link.download = `COC-${application.application_number || application.id}.pdf`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(blobUrl);
+                          }
+                        } catch (error) {
+                          console.error('❌ Download error:', error);
+                          alert('Failed to process certificate. Please try again.');
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                    >
+                      <Download className="w-5 h-5" />
+                      Download Your COC Certificate
+                    </button>
+                  )}
+                  
+                  {(application.rawStatus === 'submitted' || application.rawStatus === 'under_review' || application.rawStatus === 'requirements_submitted') && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-3">
+                      <div className="flex items-center">
+                        <Clock className="w-5 h-5 text-blue-600 mr-2" />
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Application Under Review</p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            {application.rawStatus === 'submitted' && 'Admin will review your forms soon. You\'ll be notified when ready for next steps.'}
+                            {application.rawStatus === 'under_review' && 'Admin is reviewing your forms page by page. You\'ll be notified once all pages are reviewed.'}
+                            {application.rawStatus === 'requirements_submitted' && 'Admin is reviewing your submitted requirements.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

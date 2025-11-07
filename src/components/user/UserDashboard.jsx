@@ -13,7 +13,6 @@ import CocFormPage5 from './CocFormPage5'
 import CocFormPage6Review from './CocFormPage6'
 import Apply from './Apply'
 import EnhancedApply from './EnhancedApply'
-import ReApply from './ReApply'
 import ApplicationStatus from './ApplicationStatus'
 import Profile from './ProfileNew'
 import NotificationSystem from '../shared/NotificationSystem'
@@ -93,7 +92,7 @@ const UserDashboard = () => {
         const token = localStorage.getItem('ncip_token')
         if (!token) return
 
-        const response = await axios.get(`${getApiBaseUrl()}/profile`, {
+        const response = await axios.get(`${getApiUrl()}/api/users/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -169,6 +168,23 @@ const UserDashboard = () => {
     if (section) {
       setActiveSection(section)
     }
+    
+    // Poll for new notifications every 30 seconds
+    const notificationInterval = setInterval(() => {
+      loadNotifications()
+    }, 30000)
+    
+    // Listen for notification events
+    const handleNotificationUpdate = () => {
+      loadNotifications()
+    }
+    
+    window.addEventListener('notificationUpdate', handleNotificationUpdate)
+    
+    return () => {
+      clearInterval(notificationInterval)
+      window.removeEventListener('notificationUpdate', handleNotificationUpdate)
+    }
   }, [searchParams])
 
   const loadApplications = async () => {
@@ -191,7 +207,7 @@ const UserDashboard = () => {
           type: app.service_type,
           serviceType: app.service_type,
           purpose: app.purpose,
-          status: app.application_status,
+          status: app.application_status || 'pending',
           submittedAt: app.submitted_at,
           createdAt: app.created_at,
           dateSubmitted: app.submitted_at,
@@ -223,11 +239,26 @@ const UserDashboard = () => {
     setServices(storedServices)
   }
 
-  const loadNotifications = () => {
-    const storedNotifications = JSON.parse(localStorage.getItem('ncip_notifications') || '[]')
-    const userNotifications = storedNotifications.filter(notif => notif.userId === user?.id)
-    setNotifications(userNotifications)
-    setUnreadCount(userNotifications.filter(notif => !notif.read).length)
+  const loadNotifications = async () => {
+    try {
+      const token = localStorage.getItem('ncip_token')
+      const response = await axios.get(`${getApiUrl()}/api/notifications`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      
+      if (response.data.success) {
+        const userNotifications = response.data.notifications || []
+        setNotifications(userNotifications)
+        setUnreadCount(userNotifications.filter(notif => !notif.read).length)
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error)
+      // Fallback to localStorage if API fails
+      const storedNotifications = JSON.parse(localStorage.getItem('ncip_notifications') || '[]')
+      const userNotifications = storedNotifications.filter(notif => notif.userId === user?.id)
+      setNotifications(userNotifications)
+      setUnreadCount(userNotifications.filter(notif => !notif.read).length)
+    }
   }
 
   const handleAvatarChange = (e) => {
@@ -370,65 +401,6 @@ const UserDashboard = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Recent Applications */}
-        <div className="bg-white rounded-2xl shadow-md border-2 border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b-2 border-blue-100">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">Recent Applications</h3>
-              {applications.length > 0 && (
-                <button 
-                  onClick={() => setActiveSection('applications')}
-                  className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-                >
-                  View All →
-                </button>
-              )}
-            </div>
-          </div>
-          
-          <div className="p-6">
-            {applications.length > 0 ? (
-              <div className="space-y-3">
-                {applications.slice(0, 3).map((app) => (
-                  <div key={app.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <FileText className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900 text-sm">
-                          {app.type || app.serviceType || 'Certificate of Confirmation'}
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          {new Date(app.submittedAt || app.dateSubmitted || app.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold ${getStatusColor(app.status)}`}>
-                      {getStatusIcon(app.status)}
-                      <span className="uppercase">{app.status.replace('_', ' ')}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="w-8 h-8 text-blue-400" />
-                </div>
-                <h4 className="text-lg font-bold text-gray-900 mb-2">No Applications Yet</h4>
-                <p className="text-gray-600 mb-4 text-sm">Start your first application for NCIP services</p>
-                <button 
-                  onClick={() => setActiveSection('apply')}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-md hover:shadow-lg"
-                >
-                  <Plus className="w-5 h-5" />
-                  Apply Now
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* Quick Links */}
         <div className="bg-white rounded-2xl shadow-md border-2 border-gray-100 overflow-hidden">
@@ -521,7 +493,7 @@ const UserDashboard = () => {
                   </div>
                   <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${getStatusColor(app.status)}`}>
                     {getStatusIcon(app.status)}
-                    {app.status.replace('_', ' ').charAt(0).toUpperCase() + app.status.replace('_', ' ').slice(1)}
+                    {((app.status || 'pending').replace('_', ' ').charAt(0).toUpperCase() + (app.status || 'pending').replace('_', ' ').slice(1))}
                   </div>
                 </div>
 
@@ -537,7 +509,7 @@ const UserDashboard = () => {
                           ) : (
                             <Clock className="w-4 h-4 text-gray-400" />
                           )}
-                          <span className="text-sm text-gray-700 capitalize">{page.replace('_', ' ')}</span>
+                          <span className="text-sm text-gray-700 capitalize">{(page || '').replace('_', ' ')}</span>
                         </div>
                       ))}
                     </div>
@@ -546,10 +518,40 @@ const UserDashboard = () => {
 
                 {/* Action Buttons */}
                 <div className="mt-4 flex gap-3">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
+                  {app.status === 'certificate_issued' && (
+                    <button 
+                      onClick={() => {
+                        console.log('📥 Downloading certificate for app:', app);
+                        const token = localStorage.getItem('ncip_token');
+                        const url = `${getApiUrl()}/api/applications/${app.id}/certificate`;
+                        // Create temporary link to download
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', `COC-${app.id}.pdf`);
+                        // Add auth header via fetch then download
+                        fetch(url, {
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        })
+                        .then(response => response.blob())
+                        .then(blob => {
+                          const blobUrl = window.URL.createObjectURL(blob);
+                          link.href = blobUrl;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          window.URL.revokeObjectURL(blobUrl);
+                        })
+                        .catch(error => {
+                          console.error('Download error:', error);
+                          alert('Failed to download certificate');
+                        });
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Certificate
+                    </button>
+                  )}
                   {app.status === 'pending' && (
                     <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                       <Upload className="w-4 h-4" />
@@ -982,7 +984,6 @@ const UserDashboard = () => {
     switch (activeSection) {
       case 'dashboard': return renderDashboardContent()
       case 'apply': return renderApplicationForm()
-      case 'reapply': return <ReApply />
       case 'applications': return renderApplicationsContent()
       case 'status': return <ApplicationStatus />
       case 'profile': return <Profile />
@@ -1022,7 +1023,6 @@ const UserDashboard = () => {
           {[
             { id: 'dashboard', icon: Home, label: 'Dashboard' },
             { id: 'apply', icon: FileText, label: 'Apply' },
-            { id: 'reapply', icon: RefreshCw, label: 'Re-Apply' },
             { id: 'status', icon: CheckCircle, label: 'Application Status' }
           ].map((item) => (
             <button

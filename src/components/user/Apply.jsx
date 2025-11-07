@@ -146,7 +146,7 @@ const Apply = ({ onSelectService }) => {
     }
   }
 
-  const handleSubmitUpload = () => {
+  const handleSubmitUpload = async () => {
     // Check if all files are uploaded
     const missingFiles = Object.entries(uploadedFiles)
       .filter(([key, file]) => !file)
@@ -157,11 +157,54 @@ const Apply = ({ onSelectService }) => {
       return
     }
     
-    // TODO: Implement file upload to server
-    const fileNames = Object.values(uploadedFiles).map(f => f.name).join(', ')
-    alert(`All 6 pages will be submitted for processing:\n${fileNames}`)
-    setShowUploadForm(false)
-    setShowRequirements(false)
+    try {
+      // Create FormData to upload files
+      const formData = new FormData()
+      formData.append('purpose', selectedPurpose.name)
+      formData.append('purpose_id', selectedPurpose.id || selectedPurpose.purpose_id)
+      
+      // Add all files to FormData
+      Object.entries(uploadedFiles).forEach(([key, file]) => {
+        if (file) {
+          formData.append(key, file)
+        }
+      })
+      
+      // Get token for authentication
+      const token = localStorage.getItem('ncip_token')
+      
+      // Submit to backend
+      const response = await fetch(`${getApiUrl()}/api/applications/upload-coc`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        // Use the message from backend which includes application number
+        alert(result.message || 'Application submitted successfully! You can track its status in the Application Status page.')
+        setShowUploadForm(false)
+        setShowRequirements(false)
+        setSelectedPurpose(null)
+        setUploadedFiles({
+          page1: null,
+          page2: null,
+          page3: null,
+          page4: null,
+          page5: null,
+          page6: null
+        })
+      } else {
+        alert(result.message || 'Failed to submit application. Please try again.')
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('Failed to upload files. Please try again.')
+    }
   }
 
   const getPurposeIcon = (purposeName) => {
@@ -489,43 +532,6 @@ const Apply = ({ onSelectService }) => {
                     <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm">
                       <Upload className="w-4 h-4" />
                       Upload
-                    </button>
-                  </div>
-                </div>
-
-                {/* Digital Fill-out Option */}
-                <div className="group relative bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200 hover:border-blue-400 hover:shadow-xl transition-all duration-300 cursor-pointer"
-                  onClick={() => {
-                    console.log('Digital Form clicked - Starting application');
-                    onSelectService({
-                      id: selectedPurpose.purpose_id || selectedPurpose.id,
-                      name: `Certificate of Confirmation - ${selectedPurpose.name}`,
-                      purpose: selectedPurpose.name,
-                      requirements: selectedPurpose.requirements || []
-                    });
-                  }}
-                >
-                  <div className="flex flex-col items-center text-center">
-                    <div className="bg-blue-100 p-3 rounded-full mb-3 group-hover:bg-blue-600 transition-colors">
-                      <Edit className="w-7 h-7 text-blue-600 group-hover:text-white transition-colors" />
-                    </div>
-                    <h4 className="text-base font-bold text-gray-900 mb-2">Digital Form</h4>
-                    <p className="text-gray-600 text-xs mb-3">
-                      Fill out form online
-                    </p>
-                    <div className="space-y-1.5 text-xs text-gray-500 mb-3">
-                      <div className="flex items-center justify-center">
-                        <CheckCircle className="w-3 h-3 mr-1.5 text-blue-500" />
-                        Fill online
-                      </div>
-                      <div className="flex items-center justify-center">
-                        <CheckCircle className="w-3 h-3 mr-1.5 text-blue-500" />
-                        Fast process
-                      </div>
-                    </div>
-                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm">
-                      <Edit className="w-4 h-4" />
-                      Fill Online
                     </button>
                   </div>
                 </div>
