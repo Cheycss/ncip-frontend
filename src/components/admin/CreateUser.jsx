@@ -9,6 +9,8 @@ const CreateUser = ({ onClose }) => {
     firstName: '',
     lastName: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     phoneNumber: '',
     address: '',
     role: 'user',
@@ -33,6 +35,9 @@ const CreateUser = ({ onClose }) => {
     if (!formData.lastName.trim()) return 'Last name is required';
     if (!formData.email.trim()) return 'Email is required';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return 'Please enter a valid email';
+    if (!formData.password.trim()) return 'Password is required';
+    if (formData.password.length < 6) return 'Password must be at least 6 characters';
+    if (formData.password !== formData.confirmPassword) return 'Passwords do not match';
     return null;
   };
 
@@ -97,6 +102,7 @@ const CreateUser = ({ onClose }) => {
           code: verificationCode,
           firstName: formData.firstName,
           lastName: formData.lastName,
+          password: formData.password,
           phoneNumber: formData.phoneNumber,
           address: formData.address,
           ethnicity: formData.ethnicity,
@@ -129,6 +135,8 @@ const CreateUser = ({ onClose }) => {
       firstName: '',
       lastName: '',
       email: '',
+      password: '',
+      confirmPassword: '',
       phoneNumber: '',
       address: '',
       role: 'user',
@@ -244,6 +252,50 @@ const CreateUser = ({ onClose }) => {
               <p className="mt-1 text-sm text-gray-500">
                 A verification code will be sent to this email address
               </p>
+            </div>
+
+            {/* Password Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password *
+                </label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Enter password"
+                    required
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Minimum 6 characters
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm Password *
+                </label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder="Confirm password"
+                    required
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Must match password
+                </p>
+              </div>
             </div>
 
             {/* Phone Number */}
