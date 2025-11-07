@@ -15,14 +15,12 @@ import Apply from './Apply'
 import EnhancedApply from './EnhancedApply'
 import ApplicationStatus from './ApplicationStatus'
 import Profile from './ProfileNew'
-import NotificationSystem from '../shared/NotificationSystem'
 import { 
   Home, 
   FileText, 
   Calendar, 
   User, 
   LogOut,
-  Bell,
   Plus,
   Clock,
   CheckCircle,
@@ -60,9 +58,6 @@ const UserDashboard = () => {
   const [services, setServices] = useState([])
   const [expandedRequirements, setExpandedRequirements] = useState({})
   const [sidebarVisible, setSidebarVisible] = useState(true)
-  const [notifications, setNotifications] = useState([])
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
   const [selectedService, setSelectedService] = useState(null)
   const [selectedPurpose, setSelectedPurpose] = useState(null)
   const [isMobileDevice, setIsMobileDevice] = useState(false)
@@ -162,28 +157,10 @@ const UserDashboard = () => {
   useEffect(() => {
     loadApplications()
     loadServices()
-    loadNotifications()
     
     const section = searchParams.get('section')
     if (section) {
       setActiveSection(section)
-    }
-    
-    // Poll for new notifications every 30 seconds
-    const notificationInterval = setInterval(() => {
-      loadNotifications()
-    }, 30000)
-    
-    // Listen for notification events
-    const handleNotificationUpdate = () => {
-      loadNotifications()
-    }
-    
-    window.addEventListener('notificationUpdate', handleNotificationUpdate)
-    
-    return () => {
-      clearInterval(notificationInterval)
-      window.removeEventListener('notificationUpdate', handleNotificationUpdate)
     }
   }, [searchParams])
 
@@ -239,27 +216,6 @@ const UserDashboard = () => {
     setServices(storedServices)
   }
 
-  const loadNotifications = async () => {
-    try {
-      const token = localStorage.getItem('ncip_token')
-      const response = await axios.get(`${getApiUrl()}/api/notifications`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      
-      if (response.data.success) {
-        const userNotifications = response.data.notifications || []
-        setNotifications(userNotifications)
-        setUnreadCount(userNotifications.filter(notif => !notif.read).length)
-      }
-    } catch (error) {
-      console.error('Error loading notifications:', error)
-      // Fallback to localStorage if API fails
-      const storedNotifications = JSON.parse(localStorage.getItem('ncip_notifications') || '[]')
-      const userNotifications = storedNotifications.filter(notif => notif.userId === user?.id)
-      setNotifications(userNotifications)
-      setUnreadCount(userNotifications.filter(notif => !notif.read).length)
-    }
-  }
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0]
@@ -1088,115 +1044,6 @@ const UserDashboard = () => {
 
               {/* Right Section */}
               <div className="flex items-center gap-3">
-                {/* Notifications - Professional Design */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="relative p-2.5 hover:bg-white/10 rounded-xl transition-all hover:scale-105"
-                    title={`${unreadCount} unread notifications`}
-                  >
-                    <Bell className="w-5 h-5 text-white" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg animate-pulse">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Notification Dropdown - Modern Clean UI */}
-                  {showNotifications && (
-                    <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50">
-                      {/* Header */}
-                      <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-bold text-white">Notifications</h3>
-                          {unreadCount > 0 && (
-                            <span className="px-3 py-1 bg-white bg-opacity-20 backdrop-blur-sm text-white text-xs font-bold rounded-full border border-white border-opacity-30">
-                              {unreadCount} New
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-blue-100 mt-1">
-                          Stay updated with your applications
-                        </p>
-                      </div>
-                      
-                      {/* Notifications List */}
-                      <div className="max-h-96 overflow-y-auto">
-                        {notifications.length > 0 ? (
-                          notifications.map((notification) => (
-                            <button
-                              key={notification.id}
-                              onClick={() => {
-                                if (notification.link) {
-                                  setActiveSection(notification.link)
-                                }
-                                setShowNotifications(false)
-                              }}
-                              className={`w-full p-5 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 border-b border-gray-100 text-left group ${
-                                !notification.read ? 'bg-blue-50/50' : ''
-                              }`}
-                            >
-                              <div className="flex items-start gap-4">
-                                <div className={`p-3 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow ${
-                                  notification.type === 'success' ? 'bg-gradient-to-br from-green-500 to-green-600' :
-                                  notification.type === 'warning' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
-                                  notification.type === 'error' ? 'bg-gradient-to-br from-red-500 to-red-600' :
-                                  'bg-gradient-to-br from-blue-500 to-blue-600'
-                                }`}>
-                                  <Bell className="h-6 w-6 text-white" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <p className="font-bold text-gray-900 text-base">{notification.title}</p>
-                                    {!notification.read && (
-                                      <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-gray-600 mb-2">
-                                    {notification.message}
-                                  </p>
-                                  <p className="text-xs text-gray-400">
-                                    {new Date(notification.created_at).toLocaleDateString('en-US', {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })}
-                                  </p>
-                                </div>
-                              </div>
-                            </button>
-                          ))
-                        ) : (
-                          /* No notifications - Empty State */
-                          <div className="p-12 text-center">
-                            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center">
-                              <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </div>
-                            <h4 className="text-lg font-bold text-gray-900 mb-2">All caught up!</h4>
-                            <p className="text-sm text-gray-500">You have no new notifications</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Footer */}
-                      {notifications.length > 0 && (
-                        <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
-                          <button
-                            onClick={() => setShowNotifications(false)}
-                            className="w-full text-center text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-                          >
-                            Close
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
                 {/* User Profile Button */}
                 <button
                   onClick={() => setActiveSection('profile')}
